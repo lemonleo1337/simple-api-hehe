@@ -68,13 +68,29 @@ app.post('/v1/chat/completions', async (req, res) => {
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
 
-            // Simulate streaming response by sending chunks with delays
-            const contentParts = assistantContent.split(" ");
-            for (let i = 0; i < contentParts.length; i++) {
-                res.write(`data: ${contentParts[i]}\n\n`);
-                await new Promise(resolve => setTimeout(resolve, 200)); // Delay for each chunk (simulated)
+            // Split the assistant content into chunks of two words each
+            const words = assistantContent.split(" ");
+            let chunk = "";
+            for (let i = 0; i < words.length; i++) {
+                chunk += words[i] + " ";
+                if ((i + 1) % 2 === 0 || i === words.length - 1) {
+                    res.write(`data: ${JSON.stringify({
+                        candidates: [
+                            {
+                                content: {
+                                    parts: [{ text: chunk.trim() }]
+                                },
+                                role: "model"
+                            }
+                        ]
+                    })}\n\n`);
+                    chunk = ""; // Reset chunk for the next set of words
+                    await new Promise(resolve => setTimeout(resolve, 200)); // Simulated delay
+                }
             }
-            res.write("data: [DONE]\n\n"); // Signal end of stream
+
+            // Signal the end of the stream
+            res.write("data: [DONE]\n\n");
             res.end();
         } else {
             // If not in stream mode, return the response in JSON format as usual
@@ -92,12 +108,7 @@ app.post('/v1/chat/completions', async (req, res) => {
                         },
                         finish_reason: "stop"
                     }
-                ],
-                usage: {
-                    prompt_tokens: messagesList.reduce((acc, msg) => acc + msg.content.split(' ').length, 0),
-                    completion_tokens: assistantContent.split(' ').length,
-                    total_tokens: messagesList.reduce((acc, msg) => acc + msg.content.split(' ').length, 0) + assistantContent.split(' ').length
-                }
+                ]
             };
             res.json(responseData);
         }
