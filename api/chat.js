@@ -5,6 +5,13 @@ const app = express();
 app.use(express.json());
 
 app.post('/v1/chat/completions', async (req, res) => {
+    // Authorization Check
+    const authHeader = req.headers.authorization;
+    const expectedToken = `Bearer ${process.env.PASS}`;
+    if (!authHeader || authHeader !== expectedToken) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    
     // Check if required fields are present
     const data = req.body;
     if (!data || !data.messages) {
@@ -25,7 +32,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     try {
         // Send request to the external API
         const response = await axios.post(
-            'https://dashboard.scale.com/spellbook/api/v2/deploy/5c43ofx',
+            `https://dashboard.scale.com/spellbook/api/v2/deploy/${process.env.ID}`,
             externalData,
             {
                 headers: {
