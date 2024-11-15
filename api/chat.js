@@ -4,6 +4,19 @@ const app = express();
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, OPTIONS, POST");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    // If it's an OPTIONS request, respond with the allowed methods and an empty body
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    next();
+});
+
 app.post('/v1/chat/completions', async (req, res) => {
     // Authorization Check
     const authHeader = req.headers.authorization;
